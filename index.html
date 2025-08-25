@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Translate the number</title>
+<style>
+body { font-family: Arial, sans-serif; text-align:center; background:#f0f0f0; margin:0; padding:0;}
+.screen { display:none; padding:20px; }
+.screen.active { display:block; }
+#number-display { font-size:300px; margin:20px; }
+input { padding:10px; font-size:18px; width:200px; text-align:center; }
+button { padding:10px 20px; font-size:16px; margin-top:10px; cursor:pointer; }
+#message { font-size:24px; margin:15px; }
+canvas#confetti { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; display:none; }
+</style>
+</head>
+<body>
+
+<div id="start-screen" class="screen active">
+<h1>Translate the number</h1>
+<p>Type the Spanish word for the number shown. Press Check to verify your answer.</p>
+<button id="start-btn">Start</button>
+</div>
+
+<div id="game-screen" class="screen">
+<div id="number-display">1</div>
+<input type="text" id="answer-input" placeholder="Type here">
+<div>
+<button id="check-btn">Check</button>
+<button id="next-btn">Next</button>
+</div>
+<div id="message"></div>
+<button id="restart-btn">Restart</button>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+
+const numberWords=[
+"", "Uno","Dos","Tres","Cuatro","Cinco","Seis","Siete","Ocho","Nueve","Diez",
+"Once","Doce","Trece","Catorce","Quince",
+"Dieciséis","Diecisiete","Dieciocho","Diecinueve","Veinte",
+"Veintiuno","Veintidós","Veintitrés","Veinticuatro","Veinticinco","Veintiséis","Veintisiete","Veintiocho","Veintinueve","Treinta",
+"Treinta y uno","Treinta y dos","Treinta y tres","Treinta y cuatro","Treinta y cinco","Treinta y seis","Treinta y siete","Treinta y ocho","Treinta y nueve",
+"Cuarenta","Cuarenta y uno","Cuarenta y dos","Cuarenta y tres","Cuarenta y cuatro","Cuarenta y cinco","Cuarenta y seis","Cuarenta y siete","Cuarenta y ocho","Cuarenta y nueve",
+"Cincuenta"
+];
+
+let currentNumber = 1;
+
+const startScreen = document.getElementById("start-screen");
+const gameScreen = document.getElementById("game-screen");
+const numberDisplay = document.getElementById("number-display");
+const answerInput = document.getElementById("answer-input");
+const messageEl = document.getElementById("message");
+const confettiCanvas = document.getElementById("confetti");
+const ctx = confettiCanvas.getContext("2d");
+
+document.getElementById("start-btn").onclick = () => {
+  startScreen.classList.remove("active");
+  gameScreen.classList.add("active");
+  startGame();
+};
+
+document.getElementById("restart-btn").onclick = () => {
+  stopConfetti();
+  messageEl.textContent = "";
+  currentNumber = 1;
+  numberDisplay.textContent = currentNumber;
+  answerInput.value = "";
+  answerInput.style.display = "inline-block";
+  document.getElementById("check-btn").style.display = "inline-block";
+  document.getElementById("next-btn").style.display = "inline-block";
+};
+
+document.getElementById("check-btn").onclick = () => { checkAnswer(); };
+document.getElementById("next-btn").onclick = () => { nextNumber(); };
+
+function startGame() {
+  currentNumber = 1;
+  numberDisplay.textContent = currentNumber;
+  answerInput.value = "";
+  messageEl.textContent = "";
+}
+
+function normalizeText(str){
+  return str.trim().toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'');
+}
+
+function checkAnswer() {
+  let answer = normalizeText(answerInput.value);
+  let correct = normalizeText(numberWords[currentNumber]);
+  if(answer === correct){
+    messageEl.style.color = "green";
+    messageEl.textContent = "Correct!";
+  } else {
+    messageEl.style.color = "red";
+    messageEl.textContent = "Try again!";
+  }
+}
+
+function nextNumber() {
+  let answer = normalizeText(answerInput.value);
+  let correct = normalizeText(numberWords[currentNumber]);
+  if(answer === correct){
+    currentNumber++;
+    if(currentNumber > 50){
+      finishGame();
+      return;
+    }
+    numberDisplay.textContent = currentNumber;
+    answerInput.value = "";
+    messageEl.textContent = "";
+  } else {
+    messageEl.style.color = "red";
+    messageEl.textContent = "Correct the answer before moving!";
+  }
+}
+
+function finishGame() {
+  numberDisplay.textContent = "";
+  answerInput.style.display = "none";
+  document.getElementById("check-btn").style.display = "none";
+  document.getElementById("next-btn").style.display = "none";
+  messageEl.style.color = "green";
+  messageEl.textContent = "¡Lo lograste, buen trabajo!";
+  startConfetti();
+}
+
+// Confetti
+let confettiRunning=false;
+function startConfetti(){
+  if(confettiRunning) return;
+  confettiRunning=true;
+  confettiCanvas.style.display="block";
+  confettiCanvas.width=window.innerWidth;
+  confettiCanvas.height=window.innerHeight;
+  const pieces=Array.from({length:200},()=>({
+    x:Math.random()*confettiCanvas.width,
+    y:Math.random()*confettiCanvas.height,
+    r:3+Math.random()*4,
+    vx:-1+Math.random()*2,
+    vy:1+Math.random()*3,
+    color:["#ef4444","#22c55e","#3b82f6","#facc15","#a855f7"][Math.floor(Math.random()*5)]
+  }));
+  function draw(){
+    if(!confettiRunning) return;
+    ctx.clearRect(0,0,confettiCanvas.width,confettiCanvas.height);
+    pieces.forEach(p=>{
+      ctx.fillStyle=p.color;
+      ctx.beginPath();
+      ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+      ctx.fill();
+      p.x+=p.vx; p.y+=p.vy;
+      if(p.y>confettiCanvas.height) p.y=0;
+      if(p.x>confettiCanvas.width) p.x=0;
+      if(p.x<0) p.x=confettiCanvas.width;
+    });
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+function stopConfetti(){ confettiRunning=false; confettiCanvas.style.display="none"; }
+
+});
+</script>
+
+</body>
+</html>
